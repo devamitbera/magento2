@@ -40,6 +40,7 @@ define([
             showFallbackReset: false,
             additionalClasses: {},
             isUseDefault: '',
+            serviceDisabled: false,
             valueUpdate: false, // ko binding valueUpdate
 
             switcherConfig: {
@@ -55,6 +56,9 @@ define([
                 '${ $.provider }:data.overload': 'overload',
                 '${ $.provider }:${ $.customScope ? $.customScope + "." : ""}data.validate': 'validate',
                 'isUseDefault': 'toggleUseDefault'
+            },
+            ignoreTmpls: {
+                value: true
             },
 
             links: {
@@ -97,7 +101,7 @@ define([
             this._super();
 
             this.observe('error disabled focused preview visible value warn notice isDifferedFromDefault')
-                .observe('isUseDefault')
+                .observe('isUseDefault serviceDisabled')
                 .observe({
                     'required': !!rules['required-entry']
                 });
@@ -220,7 +224,7 @@ define([
         },
 
         /**
-         * Sets 'value' as 'hidden' propertie's value, triggers 'toggle' event,
+         * Sets 'value' as 'hidden' property's value, triggers 'toggle' event,
          * sets instance's hidden identifier in params storage based on
          * 'value'.
          *
@@ -449,6 +453,10 @@ define([
          */
         toggleUseDefault: function (state) {
             this.disabled(state);
+
+            if (this.source && this.hasService()) {
+                this.source.set('data.use_default.' + this.index, Number(state));
+            }
         },
 
         /**

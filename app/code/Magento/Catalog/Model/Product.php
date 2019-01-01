@@ -119,6 +119,11 @@ class Product extends \Magento\Catalog\Model\AbstractModel implements
     protected $_urlModel = null;
 
     /**
+     * @var ResourceModel\Product
+     */
+    protected $_resource;
+
+    /**
      * @var string
      */
     protected static $_url;
@@ -483,6 +488,18 @@ class Product extends \Magento\Catalog\Model\AbstractModel implements
     }
 
     /**
+     * Get resource instance
+     *
+     * @throws \Magento\Framework\Exception\LocalizedException
+     * @return \Magento\Catalog\Model\ResourceModel\Product
+     * @deprecated because resource models should be used directly
+     */
+    protected function _getResource()
+    {
+        return parent::_getResource();
+    }
+
+    /**
      * Get a list of custom attribute codes that belongs to product attribute set. If attribute set not specified for
      * product will return all attribute codes
      *
@@ -508,22 +525,9 @@ class Product extends \Magento\Catalog\Model\AbstractModel implements
     public function getStoreId()
     {
         if ($this->hasData(self::STORE_ID)) {
-            return $this->getData(self::STORE_ID);
+            return (int)$this->getData(self::STORE_ID);
         }
-        return $this->_storeManager->getStore()->getId();
-    }
-
-    /**
-     * Get collection instance
-     *
-     * @return object
-     * @deprecated 101.1.0 because collections should be used directly via factory
-     */
-    public function getResourceCollection()
-    {
-        $collection = parent::getResourceCollection();
-        $collection->setStoreId($this->getStoreId());
-        return $collection;
+        return (int)$this->_storeManager->getStore()->getId();
     }
 
     /**
@@ -805,6 +809,9 @@ class Product extends \Magento\Catalog\Model\AbstractModel implements
         if (!$this->hasStoreIds()) {
             $storeIds = [];
             if ($websiteIds = $this->getWebsiteIds()) {
+                if ($this->_storeManager->isSingleStoreMode()) {
+                    $websiteIds = array_keys($websiteIds);
+                }
                 foreach ($websiteIds as $websiteId) {
                     $websiteStores = $this->_storeManager->getWebsite($websiteId)->getStoreIds();
                     $storeIds = array_merge($storeIds, $websiteStores);
@@ -978,7 +985,7 @@ class Product extends \Magento\Catalog\Model\AbstractModel implements
      */
     public function getQty()
     {
-        return $this->getData('qty');
+        return (float)$this->getData('qty');
     }
 
     /**
@@ -1145,11 +1152,24 @@ class Product extends \Magento\Catalog\Model\AbstractModel implements
     /**
      * Get formatted by currency product price
      *
-     * @return  array || double
+     * @return  array|double
+     */
+    public function getFormattedPrice()
+    {
+        return $this->getPriceModel()->getFormattedPrice($this);
+    }
+
+    /**
+     * Get formatted by currency product price
+     *
+     * @return  array|double
+     *
+     * @deprecated
+     * @see getFormattedPrice()
      */
     public function getFormatedPrice()
     {
-        return $this->getPriceModel()->getFormatedPrice($this);
+        return $this->getFormattedPrice();
     }
 
     /**

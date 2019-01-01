@@ -8,157 +8,79 @@ namespace Magento\ConfigurableProduct\Test\Unit\Block\Cart\Item\Renderer;
 use Magento\Catalog\Model\Config\Source\Product\Thumbnail as ThumbnailSource;
 use Magento\ConfigurableProduct\Block\Cart\Item\Renderer\Configurable as Renderer;
 
+/**
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ */
 class ConfigurableTest extends \PHPUnit\Framework\TestCase
 {
-    /** @var \Magento\Framework\View\ConfigInterface|\PHPUnit_Framework_MockObject_MockObject */
-    protected $_configManager;
+    /**
+     * @var \Magento\Framework\View\ConfigInterface|\PHPUnit_Framework_MockObject_MockObject
+     */
+    private $configManager;
 
-    /** @var \Magento\Catalog\Helper\Image|\PHPUnit_Framework_MockObject_MockObject */
-    protected $_imageHelper;
+    /**
+     * @var \Magento\Catalog\Helper\Image|\PHPUnit_Framework_MockObject_MockObject
+     */
+    private $imageHelper;
 
-    /** @var \Magento\Framework\App\Config\ScopeConfigInterface|\PHPUnit_Framework_MockObject_MockObject */
-    protected $_scopeConfig;
+    /**
+     * @var \Magento\Framework\App\Config\ScopeConfigInterface|\PHPUnit_Framework_MockObject_MockObject
+     */
+    private $scopeConfig;
 
-    /** @var \PHPUnit_Framework_MockObject_MockObject */
-    protected $productConfigMock;
+    /**
+     * @var \PHPUnit_Framework_MockObject_MockObject
+     */
+    private $productConfigMock;
 
-    /** @var Renderer */
-    protected $_renderer;
+    /**
+     * @var \Magento\Backend\Block\Template\Context|\PHPUnit_Framework_MockObject_MockObject
+     */
+    private $contextMock;
+
+    /**
+     * @var \Magento\Framework\View\Layout|PHPUnit_Framework_MockObject_MockObject
+     */
+    private $layoutMock;
+
+    /**
+     * @var Renderer
+     */
+    private $renderer;
 
     protected function setUp()
     {
         parent::setUp();
         $objectManagerHelper = new \Magento\Framework\TestFramework\Unit\Helper\ObjectManager($this);
-        $this->_configManager = $this->createMock(\Magento\Framework\View\ConfigInterface::class);
-        $this->_imageHelper = $this->createPartialMock(
+        $this->contextMock = $this->createPartialMock(\Magento\Backend\Block\Template\Context::class, ['getLayout']);
+        $this->layoutMock = $this->createPartialMock(\Magento\Framework\View\Layout::class, ['getBlock']);
+        $this->contextMock->expects($this->once())->method('getLayout')->willReturn($this->layoutMock);
+
+        $this->configManager = $this->createMock(\Magento\Framework\View\ConfigInterface::class);
+        $this->imageHelper = $this->createPartialMock(
             \Magento\Catalog\Helper\Image::class,
             ['init', 'resize', '__toString']
         );
-        $this->_scopeConfig = $this->createMock(\Magento\Framework\App\Config\ScopeConfigInterface::class);
+        $this->scopeConfig = $this->createMock(\Magento\Framework\App\Config\ScopeConfigInterface::class);
         $this->productConfigMock = $this->createMock(\Magento\Catalog\Helper\Product\Configuration::class);
-        $this->_renderer = $objectManagerHelper->getObject(
+        $this->renderer = $objectManagerHelper->getObject(
             \Magento\ConfigurableProduct\Block\Cart\Item\Renderer\Configurable::class,
             [
-                'viewConfig' => $this->_configManager,
-                'imageHelper' => $this->_imageHelper,
-                'scopeConfig' => $this->_scopeConfig,
-                'productConfig' => $this->productConfigMock
+                'viewConfig' => $this->configManager,
+                'imageHelper' => $this->imageHelper,
+                'scopeConfig' => $this->scopeConfig,
+                'productConfig' => $this->productConfigMock,
+                'context' => $this->contextMock,
             ]
         );
-    }
-
-    /**
-     * Child thumbnail is available and config option is not set to use parent thumbnail.
-     */
-    public function testGetProductForThumbnail()
-    {
-        $childHasThumbnail = true;
-        $useParentThumbnail = false;
-        $products = $this->_initProducts($childHasThumbnail, $useParentThumbnail);
-
-        $productForThumbnail = $this->_renderer->getProductForThumbnail();
-        $this->assertSame(
-            $products['childProduct'],
-            $productForThumbnail,
-            'Child product was expected to be returned.'
-        );
-    }
-
-    /**
-     * Child thumbnail is not available and config option is not set to use parent thumbnail.
-     */
-    public function testGetProductForThumbnailChildThumbnailNotAvailable()
-    {
-        $childHasThumbnail = false;
-        $useParentThumbnail = false;
-        $products = $this->_initProducts($childHasThumbnail, $useParentThumbnail);
-
-        $productForThumbnail = $this->_renderer->getProductForThumbnail();
-        $this->assertSame(
-            $products['parentProduct'],
-            $productForThumbnail,
-            'Parent product was expected to be returned.'
-        );
-    }
-
-    /**
-     * Child thumbnail is available and config option is set to use parent thumbnail.
-     */
-    public function testGetProductForThumbnailConfigUseParent()
-    {
-        $childHasThumbnail = true;
-        $useParentThumbnail = true;
-        $products = $this->_initProducts($childHasThumbnail, $useParentThumbnail);
-
-        $productForThumbnail = $this->_renderer->getProductForThumbnail();
-        $this->assertSame(
-            $products['parentProduct'],
-            $productForThumbnail,
-            'Parent product was expected to be returned ' .
-            'if "checkout/cart/configurable_product_image option" is set to "parent" in system config.'
-        );
-    }
-
-    /**
-     * Initialize parent configurable product and child product.
-     *
-     * @param bool $childHasThumbnail
-     * @param bool $useParentThumbnail
-     * @return \Magento\Catalog\Model\Product[]|\PHPUnit_Framework_MockObject_MockObject[]
-     */
-    protected function _initProducts($childHasThumbnail = true, $useParentThumbnail = false)
-    {
-        /** Set option which can force usage of parent product thumbnail when configurable product is displayed */
-        $thumbnailToBeUsed = $useParentThumbnail
-            ? ThumbnailSource::OPTION_USE_PARENT_IMAGE
-            : ThumbnailSource::OPTION_USE_OWN_IMAGE;
-        $this->_scopeConfig->expects(
-            $this->any()
-        )->method(
-            'getValue'
-        )->with(
-            Renderer::CONFIG_THUMBNAIL_SOURCE
-        )->will(
-            $this->returnValue($thumbnailToBeUsed)
-        );
-
-        /** Initialized parent product */
-        /** @var \Magento\Catalog\Model\Product|\PHPUnit_Framework_MockObject_MockObject $parentProduct */
-        $parentProduct = $this->createMock(\Magento\Catalog\Model\Product::class);
-
-        /** Initialize child product */
-        /** @var \Magento\Catalog\Model\Product|\PHPUnit_Framework_MockObject_MockObject $childProduct */
-        $childProduct = $this->createPartialMock(\Magento\Catalog\Model\Product::class, ['getThumbnail', '__wakeup']);
-        $childThumbnail = $childHasThumbnail ? 'thumbnail.jpg' : 'no_selection';
-        $childProduct->expects($this->any())->method('getThumbnail')->will($this->returnValue($childThumbnail));
-
-        /** Mock methods which return parent and child products */
-        /** @var \Magento\Quote\Model\Quote\Item\Option|\PHPUnit_Framework_MockObject_MockObject $itemOption */
-        $itemOption = $this->createMock(\Magento\Quote\Model\Quote\Item\Option::class);
-        $itemOption->expects($this->any())->method('getProduct')->will($this->returnValue($childProduct));
-        /** @var \Magento\Quote\Model\Quote\Item|\PHPUnit_Framework_MockObject_MockObject $item */
-        $item = $this->createMock(\Magento\Quote\Model\Quote\Item::class);
-        $item->expects($this->any())->method('getProduct')->will($this->returnValue($parentProduct));
-        $item->expects(
-            $this->any()
-        )->method(
-            'getOptionByCode'
-        )->with(
-            'simple_product'
-        )->will(
-            $this->returnValue($itemOption)
-        );
-        $this->_renderer->setItem($item);
-
-        return ['parentProduct' => $parentProduct, 'childProduct' => $childProduct];
     }
 
     public function testGetOptionList()
     {
         $itemMock = $this->createMock(\Magento\Quote\Model\Quote\Item::class);
-        $this->_renderer->setItem($itemMock);
+        $this->renderer->setItem($itemMock);
         $this->productConfigMock->expects($this->once())->method('getOptions')->with($itemMock);
-        $this->_renderer->getOptionList();
+        $this->renderer->getOptionList();
     }
 
     public function testGetIdentities()
@@ -168,7 +90,45 @@ class ConfigurableTest extends \PHPUnit\Framework\TestCase
         $product->expects($this->exactly(2))->method('getIdentities')->will($this->returnValue($productTags));
         $item = $this->createMock(\Magento\Quote\Model\Quote\Item::class);
         $item->expects($this->exactly(2))->method('getProduct')->will($this->returnValue($product));
-        $this->_renderer->setItem($item);
-        $this->assertEquals(array_merge($productTags, $productTags), $this->_renderer->getIdentities());
+        $this->renderer->setItem($item);
+        $this->assertEquals(array_merge($productTags, $productTags), $this->renderer->getIdentities());
+    }
+
+    /**
+     * Product price renderer test.
+     *
+     * @return void
+     */
+    public function testGetProductPriceHtml()
+    {
+        $priceHtml = 'some price html';
+        $productMock = $this->createMock(\Magento\Catalog\Model\Product::class);
+
+        $item = $this->createMock(\Magento\Quote\Model\Quote\Item::class);
+        $item->expects($this->atLeastOnce())->method('getProduct')->willReturn($productMock);
+
+        $priceRenderMock = $this->getMockBuilder(\Magento\Framework\Pricing\Render::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $this->layoutMock->expects($this->once())
+            ->method('getBlock')
+            ->with('product.price.render.default')
+            ->willReturn($priceRenderMock);
+
+        $priceRenderMock->expects($this->once())
+            ->method('render')
+            ->with(
+                \Magento\Catalog\Pricing\Price\ConfiguredPriceInterface::CONFIGURED_PRICE_CODE,
+                $productMock,
+                [
+                    'include_container' => true,
+                    'display_minimal_price' => true,
+                    'zone' => \Magento\Framework\Pricing\Render::ZONE_ITEM_LIST,
+                ]
+            )->willReturn($priceHtml);
+
+        $this->renderer->setItem($item);
+        $this->assertEquals($priceHtml, $this->renderer->getProductPriceHtml($productMock));
     }
 }

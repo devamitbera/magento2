@@ -40,7 +40,7 @@ $params = $block->getParams();
                     $(parent).trigger('clearTimeout');
                     fullScreenLoader.stopLoader();
                     globalMessageList.addErrorMessage({
-                        message: $t('An error occurred on the server. Please try to place the order again.')
+                        message: $t(<?= /* @escapeNotVerified */ json_encode($params['error_msg'])?>)
                     });
                 }
             );
@@ -65,9 +65,10 @@ $params = $block->getParams();
                     'jquery',
                     'Magento_Checkout/js/model/quote',
                     'Magento_Checkout/js/action/place-order',
-                    'Magento_Checkout/js/action/redirect-on-success'
+                    'Magento_Checkout/js/action/redirect-on-success',
+                    'Magento_Checkout/js/model/full-screen-loader'
                 ],
-                function($, quote, placeOrderAction, redirectOnSuccessAction) {
+                function($, quote, placeOrderAction, redirectOnSuccessAction, fullScreenLoader) {
                     var parent = window.top;
 
                     $(parent).trigger('clearTimeout');
@@ -76,6 +77,12 @@ $params = $block->getParams();
                     ).done(
                         function () {
                             redirectOnSuccessAction.execute();
+                        }
+                    ).fail(
+                        function () {
+                            var parent = window.top;
+                            $(parent).trigger('clearTimeout');
+                            fullScreenLoader.stopLoader();
                         }
                     );
                 }

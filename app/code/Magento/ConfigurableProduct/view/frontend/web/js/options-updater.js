@@ -26,7 +26,7 @@ define([
         if (!(data && data.items && data.items.length && productId)) {
             return false;
         }
-        changedProductOptions = data.items.find(function (item) {
+        changedProductOptions = _.find(data.items, function (item) {
             if (item['item_id'] === itemId) {
                 return item['product_id'] === productId;
             }
@@ -61,6 +61,7 @@ define([
             this.setProductOptions(cartData());
             this.updateOptions();
         }.bind(this));
+        this.updateOptions();
     },
 
     /**

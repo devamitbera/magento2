@@ -18,6 +18,8 @@ use Magento\Eav\Model\Entity\Attribute\Set;
 use Magento\Eav\Model\Adminhtml\System\Config\Source\Inputtype\Validator;
 use Magento\Eav\Model\Adminhtml\System\Config\Source\Inputtype\ValidatorFactory;
 use Magento\Eav\Model\ResourceModel\Entity\Attribute\Group\CollectionFactory;
+use Magento\Framework\App\ObjectManager;
+use Magento\Framework\Serialize\Serializer\FormData;
 use Magento\Framework\Cache\FrontendInterface;
 use Magento\Framework\Controller\ResultFactory;
 use Magento\Framework\Controller\Result\Json;
@@ -69,6 +71,11 @@ class Save extends Attribute
     private $layoutFactory;
 
     /**
+     * @var FormData
+     */
+    private $formDataSerializer;
+
+    /**
      * @param Context $context
      * @param FrontendInterface $attributeLabelCache
      * @param Registry $coreRegistry
@@ -80,6 +87,7 @@ class Save extends Attribute
      * @param FilterManager $filterManager
      * @param Product $productHelper
      * @param LayoutFactory $layoutFactory
+     * @param FormData|null $formDataSerializer
      * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
@@ -93,7 +101,8 @@ class Save extends Attribute
         CollectionFactory $groupCollectionFactory,
         FilterManager $filterManager,
         Product $productHelper,
-        LayoutFactory $layoutFactory
+        LayoutFactory $layoutFactory,
+        FormData $formDataSerializer = null
     ) {
         parent::__construct($context, $attributeLabelCache, $coreRegistry, $resultPageFactory);
         $this->buildFactory = $buildFactory;
@@ -103,17 +112,36 @@ class Save extends Attribute
         $this->validatorFactory = $validatorFactory;
         $this->groupCollectionFactory = $groupCollectionFactory;
         $this->layoutFactory = $layoutFactory;
+        $this->formDataSerializer = $formDataSerializer ?? ObjectManager::getInstance()->get(FormData::class);
     }
 
     /**
-     * @return Redirect
+     * @inheritdoc
+     *
      * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      * @SuppressWarnings(PHPMD.NPathComplexity)
      * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
      */
     public function execute()
     {
+        try {
+            $optionData = $this->formDataSerializer->unserialize(
+                $this->getRequest()->getParam('serialized_options', '[]')
+            );
+        } catch (\InvalidArgumentException $e) {
+            $message = __("The attribute couldn't be saved due to an error. Verify your information and try again. "
+                . "If the error persists, please try again later.");
+            $this->messageManager->addErrorMessage($message);
+
+            return $this->returnResult('catalog/*/edit', ['_current' => true], ['error' => true]);
+        }
+
         $data = $this->getRequest()->getPostValue();
+        $data = array_replace_recursive(
+            $data,
+            $optionData
+        );
+
         if ($data) {
             $setId = $this->getRequest()->getParam('set');
 
@@ -123,7 +151,7 @@ class Save extends Attribute
                 $name = trim($name);
 
                 try {
-                    /** @var $attributeSet Set */
+                    /** @var Set $attributeSet */
                     $attributeSet = $this->buildFactory->create()
                         ->setEntityTypeId($this->_entityTypeId)
                         ->setSkeletonId($setId)
@@ -146,7 +174,7 @@ class Save extends Attribute
 
             $attributeId = $this->getRequest()->getParam('attribute_id');
 
-            /** @var $model ProductAttributeInterface */
+            /** @var ProductAttributeInterface $model */
             $model = $this->attributeFactory->create();
             if ($attributeId) {
                 $model->load($attributeId);
@@ -179,7 +207,7 @@ class Save extends Attribute
 
             //validate frontend_input
             if (isset($data['frontend_input'])) {
-                /** @var $inputType Validator */
+                /** @var Validator $inputType */
                 $inputType = $this->validatorFactory->create();
                 if (!$inputType->isValid($data['frontend_input'])) {
                     foreach ($inputType->getMessages() as $message) {
@@ -210,7 +238,7 @@ class Save extends Attribute
 
                 $data['attribute_code'] = $model->getAttributeCode();
                 $data['is_user_defined'] = $model->getIsUserDefined();
-                $data['frontend_input'] = $model->getFrontendInput();
+                $data['frontend_input'] = $data['frontend_input'] ?? $model->getFrontendInput();
             } else {
                 /**
                  * @todo add to helper and specify all relations for properties
@@ -221,13 +249,13 @@ class Save extends Attribute
                 $data['backend_model'] = $this->productHelper->getAttributeBackendModelByInputType(
                     $data['frontend_input']
                 );
+
+                if ($model->getIsUserDefined() === null) {
+                    $data['backend_type'] = $model->getBackendTypeByInput($data['frontend_input']);
+                }
             }
 
             $data += ['is_filterable' => 0, 'is_filterable_in_search' => 0];
-
-            if ($model->getIsUserDefined() === null || $model->getIsUserDefined() != 0) {
-                $data['backend_type'] = $model->getBackendTypeByInput($data['frontend_input']);
-            }
 
             $defaultValueField = $model->getDefaultValueByInput($data['frontend_input']);
             if ($defaultValueField) {
@@ -312,6 +340,8 @@ class Save extends Attribute
     }
 
     /**
+     * Provides an initialized Result object.
+     *
      * @param string $path
      * @param array $params
      * @param array $response
