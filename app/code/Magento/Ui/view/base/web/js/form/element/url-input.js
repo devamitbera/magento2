@@ -55,6 +55,8 @@ define([
                 linkSettingsArray.name = baseLinkType.namePrefix + linkName;
                 linkSettingsArray.dataScope = baseLinkType.dataScopePrefix + linkName;
                 linkSettingsArray.type = linkName;
+                linkSettingsArray.disabled = config.disabled;
+                linkSettingsArray.visible = config.visible;
                 processedLinkTypes[linkName] = {};
                 _.extend(processedLinkTypes[linkName], baseLinkType, linkSettingsArray);
             });
@@ -133,7 +135,7 @@ define([
         createChildUrlInputComponent: function (value) {
             var elementConfig;
 
-            if (_.isUndefined(this.linkedElementInstances[value])) {
+            if (!_.isEmpty(value) && _.isUndefined(this.linkedElementInstances[value])) {
                 elementConfig = this.urlTypes[value];
                 layout([elementConfig]);
                 this.linkedElementInstances[value] = this.requestModule(elementConfig.name);
