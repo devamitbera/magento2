@@ -1993,16 +1993,12 @@ class Order extends AbstractModel implements EntityInterface, OrderInterface
      * @param int $format date format type (\IntlDateFormatter::SHORT|\IntlDateFormatter::MEDIUM
      * |\IntlDateFormatter::LONG|\IntlDateFormatter::FULL)
      * @return string
+     * @deprecated
+     * @see getCreatedAtFormattedDateAndTime
      */
     public function getCreatedAtFormatted($format)
     {
-        return $this->timezone->formatDateTime(
-            new \DateTime($this->getCreatedAt()),
-            $format,
-            $format,
-            $this->localeResolver->getDefaultLocale(),
-            $this->timezone->getConfigTimezone('store', $this->getStore())
-        );
+        return $this->getCreatedAtFormattedDateAndTime($format, $format);
     }
 
     /**
@@ -4535,4 +4531,24 @@ class Order extends AbstractModel implements EntityInterface, OrderInterface
     }
 
     //@codeCoverageIgnoreEnd
+
+    /**
+     * Get formatted order created date and time in store timezone
+     *
+     * @param int $dateFormat date format type (\IntlDateFormatter::SHORT|\IntlDateFormatter::MEDIUM
+     * |\IntlDateFormatter::LONG|\IntlDateFormatter::FULL)
+     * @param int $timeFormat time format type (\IntlDateFormatter::SHORT|\IntlDateFormatter::MEDIUM
+     * |\IntlDateFormatter::LONG|\IntlDateFormatter::FULL)
+     * @return string
+     */
+    public function getCreatedAtFormattedDateAndTime($dateFormat, $timeFormat)
+    {
+        return $this->timezone->formatDateTime(
+            new \DateTime($this->getCreatedAt()),
+            $dateFormat,
+            $timeFormat,
+            $this->localeResolver->getDefaultLocale(),
+            $this->timezone->getConfigTimezone('store', $this->getStore())
+        );
+    }
 }
