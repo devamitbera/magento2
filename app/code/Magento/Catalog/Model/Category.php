@@ -47,6 +47,12 @@ class Category extends \Magento\Catalog\Model\AbstractModel implements
     \Magento\Catalog\Api\Data\CategoryInterface,
     \Magento\Catalog\Api\Data\CategoryTreeInterface
 {
+
+    /**
+     * @var \Magento\Catalog\Model\CategoryChildren
+     */
+    private $children;
+
     /**
      * Entity code.
      * Can be used as part of method name for entity processing
@@ -270,6 +276,7 @@ class Category extends \Magento\Catalog\Model\AbstractModel implements
         CategoryRepositoryInterface $categoryRepository,
         \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
         \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
+        \Magento\Catalog\Model\CategoryChildren $children,   
         array $data = []
     ) {
         $this->metadataService = $metadataService;
@@ -285,6 +292,7 @@ class Category extends \Magento\Catalog\Model\AbstractModel implements
         $this->urlFinder = $urlFinder;
         $this->indexerRegistry = $indexerRegistry;
         $this->categoryRepository = $categoryRepository;
+        $this->children = $children;
         parent::__construct(
             $context,
             $registry,
@@ -295,6 +303,7 @@ class Category extends \Magento\Catalog\Model\AbstractModel implements
             $resourceCollection,
             $data
         );
+
     }
 
     /**
