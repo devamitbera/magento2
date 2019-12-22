@@ -3,27 +3,20 @@
  * Copyright © Magento, Inc. All rights reserved.
  * See COPYING.txt for license details.
  */
-
 namespace Magento\Eav\Model\ResourceModel;
 
-use Exception;
 use Magento\Eav\Model\Config;
-use Magento\Eav\Model\Entity\Attribute\AbstractAttribute;
 use Magento\Framework\DataObject;
 use Magento\Framework\DB\Select;
 use Magento\Framework\DB\Sql\UnionExpression;
 use Magento\Framework\EntityManager\MetadataPool;
 use Magento\Framework\EntityManager\Operation\AttributeInterface;
-use Magento\Framework\Exception\ConfigurationMismatchException;
-use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Model\Entity\ScopeInterface;
 use Magento\Framework\Model\Entity\ScopeResolver;
 use Psr\Log\LoggerInterface;
 
 /**
  * EAV read handler
- *
- * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
 class ReadHandler implements AttributeInterface
 {
@@ -70,8 +63,8 @@ class ReadHandler implements AttributeInterface
      *
      * @param string $entityType
      * @return \Magento\Eav\Api\Data\AttributeInterface[]
-     * @throws Exception if for unknown entity type
-     * @deprecated Not used anymore
+     * @throws \Exception if for unknown entity type
+     * @deprecated 101.0.5 Not used anymore
      * @see ReadHandler::getEntityAttributes
      */
     protected function getAttributes($entityType)
@@ -87,7 +80,7 @@ class ReadHandler implements AttributeInterface
      * @param string $entityType
      * @param DataObject $entity
      * @return \Magento\Eav\Api\Data\AttributeInterface[]
-     * @throws Exception if for unknown entity type
+     * @throws \Exception if for unknown entity type
      */
     private function getEntityAttributes(string $entityType, DataObject $entity): array
     {
@@ -118,9 +111,9 @@ class ReadHandler implements AttributeInterface
      * @param array $entityData
      * @param array $arguments
      * @return array
-     * @throws Exception
-     * @throws ConfigurationMismatchException
-     * @throws LocalizedException
+     * @throws \Exception
+     * @throws \Magento\Framework\Exception\ConfigurationMismatchException
+     * @throws \Magento\Framework\Exception\LocalizedException
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function execute($entityType, $entityData, $arguments = [])
@@ -136,7 +129,7 @@ class ReadHandler implements AttributeInterface
         $attributesMap = [];
         $selects = [];
 
-        /** @var AbstractAttribute $attribute */
+        /** @var \Magento\Eav\Model\Entity\Attribute\AbstractAttribute $attribute */
         foreach ($this->getEntityAttributes($entityType, new DataObject($entityData)) as $attribute) {
             if (!$attribute->isStatic()) {
                 $attributeTables[$attribute->getBackend()->getTable()][] = $attribute->getAttributeId();
@@ -177,11 +170,8 @@ class ReadHandler implements AttributeInterface
                     $entityData[$attributesMap[$attributeValue['attribute_id']]] = $attributeValue['value'];
                 } else {
                     $this->logger->warning(
-                        "Attempt to load value of nonexistent EAV attribute",
-                        [
-                            'attribute_id' => $attributeValue['attribute_id'],
-                            'entity_type' => $entityType
-                        ]
+                        "Attempt to load value of nonexistent EAV attribute '{$attributeValue['attribute_id']}'
+                        for entity type '$entityType'."
                     );
                 }
             }
@@ -194,9 +184,8 @@ class ReadHandler implements AttributeInterface
      *
      * @param Select[] $selects
      * @param array $identifiers
-     * @return void
      */
-    private function applyIdentifierForSelects(array $selects, array $identifiers): void
+    private function applyIdentifierForSelects(array $selects, array $identifiers)
     {
         foreach ($selects as $select) {
             foreach ($identifiers as $identifier) {

@@ -15,8 +15,7 @@ use Magento\Payment\Block\ConfigurableInfo;
  * Translates the labels for the info block
  *
  * @api
- * @deprecated Starting from Magento 2.3.4 Authorize.net payment method core integration is deprecated in favor of
- * official payment integration available on the marketplace
+ * @since 100.3.0
  */
 class Info extends ConfigurableInfo
 {
@@ -25,6 +24,7 @@ class Info extends ConfigurableInfo
      *
      * @param string $field
      * @return Phrase
+     * @since 100.3.0
      */
     protected function getLabel($field): Phrase
     {
